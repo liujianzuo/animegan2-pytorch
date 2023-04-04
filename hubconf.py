@@ -5,10 +5,15 @@ def generator(pretrained=True, device="cpu", progress=True, check_hash=True):
     from model import Generator
 
     release_url = "https://github.com/bryandlee/animegan2-pytorch/raw/main/weights"
+    release_url = "https://github.com/liujianzuo/animegan2-pytorch/raw/main/weights"
     known = {
         name: f"{release_url}/{name}.pt"
         for name in [
-            'celeba_distill', 'face_paint_512_v1', 'face_paint_512_v2', 'paprika'
+            'celeba_distill', 'face_paint_512_v1', 'face_paint_512_v2', 'paprika',
+            'pytorch_generator_Hayao',  'pytorch_generator_Hayao_v2', 'pytorch_generator_Paprika','pytorch_generator_Shinkai',  # v2的tensor转换而来
+            'generator_celeba_distill', 'face_paint_512_v2_0','face_paint_512_v0', # 原项目下载
+            'Hayao_net_G_float', 'Hosoda_net_G_float','Paprika_net_G_float','Shinkai_net_G_float' # https://github.com/ahmedbesbes/cartoonify#fromHistory   这里下载的有个sh脚本
+
         ]
     }
 
@@ -23,6 +28,7 @@ def generator(pretrained=True, device="cpu", progress=True, check_hash=True):
         ckpt_url = known.get('face_paint_512_v2')
 
     if pretrained is True:
+        print(ckpt_url)
         state_dict = torch.hub.load_state_dict_from_url(
             ckpt_url,
             map_location=device,
@@ -38,6 +44,7 @@ def face2paint(device="cpu", size=512, side_by_side=False):
     from PIL import Image
     from torchvision.transforms.functional import to_tensor, to_pil_image
 
+
     def face2paint(
         model: torch.nn.Module,
         img: Image.Image,
@@ -46,9 +53,18 @@ def face2paint(device="cpu", size=512, side_by_side=False):
         device: str = device,
     ) -> Image.Image:
         w, h = img.size
+
+        bili = h/w  # 图片比例不变
+        # print(w, h, size) # 不改图片尺寸
+
         s = min(w, h)
-        img = img.crop(((w - s) // 2, (h - s) // 2, (w + s) // 2, (h + s) // 2))
-        img = img.resize((size, size), Image.LANCZOS)
+        # img = img.crop(((w - s) // 2, (h - s) // 2, (w + s) // 2, (h + s) // 2)) # 不裁剪
+        if w < 700:
+            suoxiao = 1
+        else:
+            suoxiao = 1  #缩小倍数
+
+        img = img.resize((int(w/suoxiao), int((w/suoxiao)*bili)), Image.LANCZOS) #比例放大缩小
 
         with torch.no_grad():
             input = to_tensor(img).unsqueeze(0) * 2 - 1
